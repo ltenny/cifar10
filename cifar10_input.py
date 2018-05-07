@@ -19,4 +19,10 @@ def read_cifar10(filename_queue):
     class CIFAR10Record(object):
         pass
     result = CIFAR10Record()
-    
+
+    label_bytes = 1
+    result.height = 32
+    result.width = 32
+    result.depth = 3
+    image_bytes = result.height * result.width * rsult.depth
+        
