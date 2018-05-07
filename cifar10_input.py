@@ -7,7 +7,7 @@ import os
 from six.moves import xrange
 import tensorflow as tf 
 
-# although the CIFAR-10 are 32x32 we take just the center 24x24
+# although the CIFAR-10 are 32x32 
 IMAGE_SIZE = 24
 
 NUM_CLASSES = 10
@@ -25,7 +25,7 @@ def read_cifar10(filename_queue):
     result.height = 32
     result.width = 32
     result.depth = 3
-    image_bytes = result.height * result.width * rsult.depth
+    image_bytes = result.height * result.width * result.depth
 
     # every record has a label followed by the image
     record_bytes = label_bytes + image_bytes
@@ -33,17 +33,17 @@ def read_cifar10(filename_queue):
     # read a record getting the filenames from the input queue of 
     # filenames, note that using FixedLengthRecords() (i.e. the data API)
     # is more efficient than the feed approach via placeholders
-    reader = tf.FixedLengthRecords(record_bytes=record_bytes)
+    reader = tf.FixedLengthRecordReader(record_bytes=record_bytes)
     result.key, value = reader.read(filename_queue)
 
     # convert from a string to a vector of uint8
-    record_bytes = tf.decode_raw(valuem, tf.uint8)
+    record_bytes = tf.decode_raw(value, tf.uint8)
     
     # the first bytes represent the label, so we convert it to int32
     result.label = tf.cast(tf.strided_slice(record_bytes,[0],[label_bytes]),tf.int32)
 
     # the remaining bytes represent the image that we need to reshape into 32x32x3
-    depth_major = tf.reshape(tf.strided_slice(record_bytes, [label_bytes],[labels_bytes+image_bytes]),
+    depth_major = tf.reshape(tf.strided_slice(record_bytes, [label_bytes], [labels_bytes + image_bytes]),
                             [result.depth, result.height, result.width])
     
     result.uint8image = tf.transpose(depth_major, [1,2,0])
@@ -58,7 +58,8 @@ def _generate_image_and_label_batch(image, label, min_queue_examples, batch_size
             [image, label],
             batch_size = batch_size,
             num_threads = num_preprocess_threads,
-            capacity = min_queue_examples)
+            capacity = min_queue_examples + 3 * batch_size,
+            min_after_dequeue = min_queue_examples)
     else:
         images, label_batch = tf.train.batch(
             [image, label],
@@ -82,7 +83,7 @@ def distorted_inputs(data_dir, batch_size):
 
     with tf.name_scope('data_augmentation'):
         read_input = read_cifar10(filename_queue)
-        reshape_image = tf.cast(read_input.uint8image, tf.float32)
+        reshaped_image = tf.cast(read_input.uint8image, tf.float32)
         height = IMAGE_SIZE
         width = IMAGE_SIZE
 
@@ -90,12 +91,12 @@ def distorted_inputs(data_dir, batch_size):
         distorted_image = tf.random_crop(reshaped_image, [height, width, 3])
         distorted_image = tf.image.random_flip_left_right(distorted_image)
         distorted_image = tf.image.random_brightness(distorted_image, max_delta=63)
-        distorted_image = tf.image.random_contrast(distorted_image, lower=0.2,upper=1.8)
+        distorted_image = tf.image.random_contrast(distorted_image, lower=0.2, upper=1.8)
 
         # standardize by centering around the mean and divide by stddev
         float_image = tf.image.per_image_standardization(distorted_image)
         
-        float_image.set_shape([height,width])
+        float_image.set_shape([height,width,3])
         read_input.label.set_shape([1])
 
         min_fraction_of_examples_in_queue = 0.4
@@ -103,6 +104,41 @@ def distorted_inputs(data_dir, batch_size):
         print('Filling queue with %d CIFAR images before starting to train. ' % min_queue_examples)
 
         return _generate_image_and_label_batch(float_image, read_input.label, min_queue_examples, batch_size, shuffle=True)
+
+
+def inputs(eval_data, data_dir, batch_size):
+    if not eval_data:
+        filenames = [os.path.join(data_dir, 'data_batch_%d.bin' % i) for i in xrange(1,6)]
+        num_examples_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN
+    else:
+        filenames = [os.path.join(data_dir, 'test_batch.bin']
+        num_examples_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
+
+    for f in filenames:
+        if not tf.gfile.Exists(f):
+            raise ValueError('failed to find file: ' + f)
+
+    # create a queue of filenames
+    filename_queue = tf.train.string_input_producer(filenames)
+
+    with tf.name_scope('input'):
+
+        read_input = read_cifar10(filename_queue)
+        reshape_image = tf.cast(read_input.uint8image, tf.float32)
+
+        height = IMAGE_SIZE
+        width = IMAGE_SIZE
+
+        resized_image = tf.image.resize_image_with_crop_or_pad(reshaped_image, height, width)
+        float_image = tf.image.per_image_standardization(resized_image)
+
+        float_image.set_shape([height, width, 3])
+        read_input.label.set_shape([1])
+
+        min_fraction_of_examples_in_queue = 0.4
+        min_queue_examples = int(num_examples_per_epoch * min_fraction_of_examples_in_queue)
+
+        return _generate_image_and_label_batch(float_image, read_input.label, min_queue_examples, batch_size, shuffle=False)
 
 
         
