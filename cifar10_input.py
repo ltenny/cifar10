@@ -20,9 +20,23 @@ def read_cifar10(filename_queue):
         pass
     result = CIFAR10Record()
 
+    # dimensions of the images in the CIFAR-10 dataset
     label_bytes = 1
     result.height = 32
     result.width = 32
     result.depth = 3
     image_bytes = result.height * result.width * rsult.depth
-        
+
+    # every record has a label followed by the image
+    record_bytes = label_bytes + image_bytes
+
+    # read a record getting the filenames from the input queue of 
+    # filenames, note that using FixedLengthRecords() (i.e. the data API)
+    # is more efficient than the feed approach via placeholders
+    reader = tf.FixedLengthRecords(record_bytes=record_bytes)
+    result.key, value = reader.read(filename_queue)
+
+    # convert from a string to a vector of uint8
+    record_bytes = tf.decode_raw(valuem, tf.uint8)
+    
+
