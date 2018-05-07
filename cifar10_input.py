@@ -39,4 +39,15 @@ def read_cifar10(filename_queue):
     # convert from a string to a vector of uint8
     record_bytes = tf.decode_raw(valuem, tf.uint8)
     
+    # the first bytes represent the label, so we convert it to int32
+    result.label = tf.cast(tf.strided_slice(record_bytes,[0],[label_bytes]),tf.int32)
+
+    # the remaining bytes represent the image that we need to reshape into 32x32x3
+    depth_major = tf.reshape(tf.strided_slice(record_bytes, [label_bytes],[labels_bytes+image_bytes]),
+                            [result.depth, result.height, result.width])
+    
+    result.uint8image = tf.transpose(depth_major, [1,2,0])
+
+    return result
+    
 
