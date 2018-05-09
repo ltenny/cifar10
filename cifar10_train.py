@@ -9,7 +9,7 @@ import cifar10
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('train_dir', '/tmp/cifar10_train',"""For event logs and chkpt""")
+tf.app.flags.DEFINE_string('train_dir', 'cifar10_train',"""For event logs and chkpt""")
 tf.app.flags.DEFINE_integer('max_steps',1000000,"""Number of batches to run""")
 tf.app.flags.DEFINE_boolean('log_device_placement',False,"""Log device placement""")
 tf.app.flags.DEFINE_integer('log_frequency',10,"""How often to log""")
@@ -32,7 +32,7 @@ def train():
         class _LoggerHook(tf.train.SessionRunHook):
             def begin(self):
                 self._step = -1
-                self._start_Time = time.time()
+                self._start_time = time.time()
 
             def before_run(self, run_context):
                 self._step += 1
@@ -70,4 +70,3 @@ def main(argv=None):
 
 if __name__ == '__main__':
     tf.app.run()
-    

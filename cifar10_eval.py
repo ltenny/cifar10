@@ -13,9 +13,9 @@ import cifar10
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('eval_dir','/tmp/cifar10_eval',"""Directory to write log events""")
+tf.app.flags.DEFINE_string('eval_dir','cifar10_eval',"""Directory to write log events""")
 tf.app.flags.DEFINE_string('eval_data','test',"""Either 'test' or 'train_eval'""")
-tf.app.flags.DEFINE_string('checkpoint_dir','/tmp/cifar10_train',"""Directory to read model checkpoints""")
+tf.app.flags.DEFINE_string('checkpoint_dir','cifar10_train',"""Directory to read model checkpoints""")
 tf.app.flags.DEFINE_integer('eval_interval_secs', 60*5,"""How often to run eval""")
 tf.app.flags.DEFINE_integer('num_examples',10000,"""Number of examples to run""")
 tf.app.flags.DEFINE_boolean('run_once',False,"""Eval only once""")

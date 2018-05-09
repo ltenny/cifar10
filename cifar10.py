@@ -14,7 +14,7 @@ import cifar10_input
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_integer('batch_size', 128,"""Number of images to process in a batch.""")
-tf.app.flags.DEFINE_string('data_dir','/tmp/cifar10_data',"""Path to CIFAR-10 data directory.""")
+tf.app.flags.DEFINE_string('data_dir','cifar10_data',"""Path to CIFAR-10 data directory.""")
 tf.app.flags.DEFINE_boolean('use_fp16',False,"""Train model using fp16.""")
 
 
@@ -57,7 +57,7 @@ def distorted_inputs():
     if not FLAGS.data_dir:
         raise ValueError('please supply a data_dir')
     data_dir = os.path.join(FLAGS.data_dir, 'cifar-10-batches-bin')
-    images, labels = cifar1-_input.distorted_inputs(data_dir=data_dir, batch_size=FLAGS.batch_size)
+    images, labels = cifar10_input.distorted_inputs(data_dir=data_dir, batch_size=FLAGS.batch_size)
 
     if FLAGS.use_fp16:
         images = tf.cast(images, tf.float16)
@@ -77,7 +77,7 @@ def inputs(eval_data):
 
 def inference(images):
     with tf.variable_scope('conv1') as scope:
-        kernel = _variable_with_decay('weights', shape=[5,5,3,64], stddev=5e-2, wd=None)
+        kernel = _variable_with_weight_decay('weights', shape=[5,5,3,64], stddev=5e-2, wd=None)
         conv = tf.nn.conv2d(images, kernel, [1,1,1,1], padding='SAME')
         biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.0))
         pre_activation = tf.nn.bias_add(conv, biases)
@@ -88,7 +88,7 @@ def inference(images):
     norm1 = tf.nn.lrn(pool1, 4, bias=1.0, alpha=0.001/ 9.0, beta=0.75, name='norm1')
 
     with tf.variable_scope('conv2') as scope:
-        kernel = _variable_with_decay('weights', shape=[5,5,64,64], stddev=5e-2, wd=None)
+        kernel = _variable_with_weight_decay('weights', shape=[5,5,64,64], stddev=5e-2, wd=None)
         conv = tf.nn.conv2d(norm1, kernel, [1,1,1,1], padding='SAME')
         biases = _variable_on_cpu('biases',[64], tf.constant_initializer(0.1))
         pre_activation = tf.nn.bias_add(conv, biases)
@@ -132,7 +132,7 @@ def loss(logits, labels):
 def _add_loss_summaries(total_loss):
     loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
     losses = tf.get_collection('losses')
-    loss_averages_op = loss_averages.apply(losses, + [total_loss])
+    loss_averages_op = loss_averages.apply(losses + [total_loss])
     for l in losses + [total_loss]:
         tf.summary.scalar(l.op.name + ' (raw)', l)
         tf.summary.scalar(l.op.name, loss_averages.average(l))
@@ -167,7 +167,7 @@ def train(total_loss, global_step):
     with tf.control_dependencies([apply_gradient_op]):
         variables_average_op = variable_averages.apply(tf.trainable_variables())
 
-    return variables_averages_op
+    return variables_average_op
 
 def maybe_download_and_extract():
     dest_directory = FLAGS.data_dir
@@ -176,16 +176,15 @@ def maybe_download_and_extract():
     filename = DATA_URL.split('/')[-1]
     filepath = os.path.join(dest_directory, filename)
     if not os.path.exists(filepath):
-        sys.stdout.write('\r>> Downloading %s %.1f%%' %
-                    (filename, float(count * block_size) / float(total_size) * 100.0))
-        sys.stdout.flush()
-    filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
-    print()
-    statinfo = os.stat(filepath)
-    print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')
-    extracted_dir_path = os.path.jin(dest_directory, 'cifar-10-batches-bin')
+        def _progress(count, block_size, total_size):
+            sys.stdout.write('\r>> Downloading %s %.1f%%' %
+                        (filename, float(count * block_size) / float(total_size) * 100.0))
+            sys.stdout.flush()
+        filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
+        print()
+        statinfo = os.stat(filepath)
+        print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')
+    extracted_dir_path = os.path.join(dest_directory, 'cifar-10-batches-bin')
     if not os.path.exists(extracted_dir_path):
         tarfile.open(filepath,'r:gz').extractall(dest_directory)
         
-
-
