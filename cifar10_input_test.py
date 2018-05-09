@@ -37,11 +37,11 @@ class CIFAR10InputTest(tf.test.TestCase):
                     result.key, result.label, result.uint8image])
                 self.assertEqual("%s:%d" % (filename, i), tf.compat.as_text(key))
                 self.assertEqual(labels[i],label)
-                self.assertAllEqual(epxected[i], uint8image)
+                self.assertAllEqual(exxpected[i], uint8image)
 
             with self.assertRaises(tf.errors.OutOfRangeError):
                 sess.run([result.key, result.uint8image])
                 
 if __name__ == "__main__":
     tf.test.main()
-    
+
