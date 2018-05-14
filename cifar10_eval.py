@@ -58,7 +58,7 @@ def eval_once(saver, summary_writer, top_k_op, summary_op):
             coord.request_stop(e)
 
         coord.request_stop()
-        coord.join(thread, stop_grace_period_secs=10)
+        coord.join(threads, stop_grace_period_secs=10)
 
 def evaluate():
     with tf.Graph().as_default() as g:
@@ -88,6 +88,6 @@ def main(argv=None):
     tf.gfile.MakeDirs(FLAGS.eval_dir)
     evaluate()
 
-if __name == '__main__':
+if __name__ == '__main__':
     tf.app.run()
 
